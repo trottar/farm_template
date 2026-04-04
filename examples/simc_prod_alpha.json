@@ -1,0 +1,25 @@
+{
+  "defaults": {
+    "partition": "production"
+  },
+  "jobs": [
+    {
+      "variant_name": "sweep_a",
+      "runs_file": "/path/to/run_lists/simc_prod_runs.txt",
+      "worker_args": [
+        "{variant}",
+        "{run}"
+      ],
+      "outputs": [
+        {
+          "local_template": "simc_{run}.root",
+          "remote_dir": "/mss/your-group/your-project/Pass4a_Apr_2026/ROOTfiles/Analysis/SIMC"
+        },
+        {
+          "local_template": "simc_{run}.report",
+          "remote_dir": "/mss/your-group/your-project/Pass4a_Apr_2026/REPORT_OUTPUT/Analysis/SIMC"
+        }
+      ]
+    }
+  ]
+}

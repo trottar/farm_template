@@ -1,0 +1,9 @@
+{
+  "workflow_prefix": "kaonlt_replay_template",
+  "manifest_dir": "../input/kaon",
+  "manifest_glob": "Q3p0W3p14*.json",
+  "mode": "unique",
+  "worker_script": "../replay_env/run_replay.sh",
+  "account": "hallc",
+  "partition": "production"
+}

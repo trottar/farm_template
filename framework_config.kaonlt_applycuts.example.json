@@ -1,0 +1,9 @@
+{
+  "workflow_prefix": "kaonlt_applycuts_template",
+  "manifest_dir": "../input/kaon",
+  "manifest_glob": "Q3p0W3p14*.json",
+  "mode": "variant",
+  "worker_script": "../applyCuts_Prod.sh",
+  "account": "hallc",
+  "partition": "production"
+}

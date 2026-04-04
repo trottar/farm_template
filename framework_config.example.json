@@ -1,0 +1,9 @@
+{
+  "workflow_prefix": "simc_batch",
+  "manifest_dir": "./examples",
+  "manifest_glob": "simc_prod*.json",
+  "mode": "unique",
+  "worker_script": "./workers/worker_single_run_template.sh",
+  "account": "hallc",
+  "partition": "production"
+}

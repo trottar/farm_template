@@ -1,0 +1,25 @@
+{
+  "defaults": {
+    "partition": "production"
+  },
+  "jobs": [
+    {
+      "variant_name": "center_lowe",
+      "runs_file": "/path/to/run_lists/Q3p0W3p14center_lowe.txt",
+      "worker_args": [
+        "center_lowe",
+        "{run}"
+      ],
+      "outputs": [
+        {
+          "local_template": "analysis_{run}.root",
+          "remote_dir": "/mss/hallc/example/Pass4a_Apr_2026/ROOTfiles/Analysis/Example"
+        },
+        {
+          "local_template": "analysis_{run}.report",
+          "remote_dir": "/mss/hallc/example/Pass4a_Apr_2026/REPORT_OUTPUT/Analysis/Example"
+        }
+      ]
+    }
+  ]
+}
