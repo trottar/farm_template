@@ -1,14 +1,34 @@
 #!/usr/bin/env python3
-"""
-Generic template entrypoint for SWIF resource rebalancing.
+"""Template placeholder to inspect workflow status before manual SWIF rebalancing."""
 
-This template intentionally reuses the current generic helper from
-`farm_env/rebalance_swif.py`. If you later want a fully detached copy for
-another repo, copy that helper body into this file and customize the
-resource-detection logic there.
-"""
+from __future__ import annotations
 
-from farm_env.rebalance_swif import main
+import argparse
+import subprocess
+import sys
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Show workflow summary to guide manual rebalancing.")
+    parser.add_argument("workflow", help="SWIF workflow name")
+    parser.add_argument("--swif2-bin", default="swif2", help="SWIF2 executable")
+    parser.add_argument("--apply", action="store_true", help="Reserved for future auto-apply support")
+    parser.add_argument("--no-run", action="store_true", help="Reserved for compatibility")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if args.apply:
+        print("WARNING: --apply is not implemented in this template; showing summary only.")
+
+    cmd = [args.swif2_bin, "status", args.workflow, "-summary"]
+    result = subprocess.run(cmd, text=True, capture_output=True, check=False)
+    if result.stdout:
+        print(result.stdout.rstrip())
+    if result.stderr:
+        print(result.stderr.rstrip(), file=sys.stderr)
+    return result.returncode
 
 
 if __name__ == "__main__":

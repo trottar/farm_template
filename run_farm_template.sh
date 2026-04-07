@@ -186,6 +186,8 @@ fi
 
 if [[ -n "${workflow_override:-}" ]]; then
     WORKFLOW="${workflow_override}"
+elif [[ "${diagnose_flag:-false}" = "true" || "${rebalance_flag:-false}" = "true" ]] && [[ -n "${SELECTOR}" ]]; then
+    WORKFLOW="${SELECTOR}"
 else
     USER_NAME="${USER:-user}"
     WORKFLOW_TOKEN="${SELECTOR:-${manifest_glob}}"
