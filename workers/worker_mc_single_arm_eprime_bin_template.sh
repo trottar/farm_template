@@ -22,7 +22,7 @@ if ! [[ "${BIN_INDEX}" =~ ^[0-9]+$ ]]; then
     exit 2
 fi
 
-MC_SINGLE_ARM_REPO="${MC_SINGLE_ARM_REPO:-${PWD}}"
+MC_SINGLE_ARM_REPO="${MC_SINGLE_ARM_REPO:-${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-${PWD}}}}"
 RUN_SCRIPT="${MC_SINGLE_ARM_RUN_SCRIPT:-run_mc_single_arm_tree_eprime_bin}"
 TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS:-1000000}"
 CHUNK_TRIALS="${CHUNK_TRIALS:-2000000}"
@@ -43,10 +43,6 @@ if [[ ! -f "${SCRIPT_PATH}" ]]; then
     echo "ERROR: run script file not found: ${SCRIPT_PATH}" >&2
     exit 3
 fi
-if [[ ! -x "${SCRIPT_PATH}" ]]; then
-    echo "ERROR: run script is not executable: ${SCRIPT_PATH}" >&2
-    exit 3
-fi
 
 if ! [[ "${TARGET_GOOD_EVENTS}" =~ ^[0-9]+$ && "${CHUNK_TRIALS}" =~ ^[0-9]+$ && "${MAX_CHUNKS}" =~ ^[0-9]+$ ]]; then
     echo "ERROR: TARGET_GOOD_EVENTS, CHUNK_TRIALS, and MAX_CHUNKS must be integers." >&2
@@ -60,10 +56,17 @@ expected_output="${MC_SINGLE_ARM_REPO}/outfiles/${run_tag}.root"
 rm -f "${expected_output}"
 
 pushd "${MC_SINGLE_ARM_REPO}" >/dev/null
-TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS}" \
-CHUNK_TRIALS="${CHUNK_TRIALS}" \
-MAX_CHUNKS="${MAX_CHUNKS}" \
-"${SCRIPT_PATH}" "${KIN_NAME}" "${BIN_INDEX}"
+if [[ -x "${SCRIPT_PATH}" ]]; then
+    TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS}" \
+    CHUNK_TRIALS="${CHUNK_TRIALS}" \
+    MAX_CHUNKS="${MAX_CHUNKS}" \
+    "${SCRIPT_PATH}" "${KIN_NAME}" "${BIN_INDEX}"
+else
+    TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS}" \
+    CHUNK_TRIALS="${CHUNK_TRIALS}" \
+    MAX_CHUNKS="${MAX_CHUNKS}" \
+    bash "${SCRIPT_PATH}" "${KIN_NAME}" "${BIN_INDEX}"
+fi
 popd >/dev/null
 
 if [[ ! -f "${expected_output}" ]]; then

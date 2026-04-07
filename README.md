@@ -209,7 +209,7 @@ Included examples:
 
 ## mc-single-arm Bin-by-Bin Example
 
-This template set can also drive `trottar/mc-single-arm` for the
+This template set can also drive `mc-single-arm` for the
 `run_mc_single_arm_tree_eprime_bin` workflow (one SWIF job per E' bin index).
 
 Added starter files:
@@ -233,7 +233,7 @@ Typical invocation:
 
 Environment variables accepted by the worker:
 
-- `MC_SINGLE_ARM_REPO` (default: current working directory)
+- `MC_SINGLE_ARM_REPO` (default: `SWIF_JOB_WORK_DIR`, then `SWIF_JOB_STAGE_DIR`, then current working directory)
 - `MC_SINGLE_ARM_RUN_SCRIPT` (default: `run_mc_single_arm_tree_eprime_bin`, supports absolute path)
 - `TARGET_GOOD_EVENTS` (default: `1000000`)
 - `CHUNK_TRIALS` (default: `2000000`)
@@ -286,3 +286,6 @@ Optional worker override:
 
 For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.
 If `./run_farm_template.sh` reports `Permission denied`, run `bash ./run_farm_template.sh ...` to bypass missing executable-bit issues in shared checkouts.
+
+Diagnose mode accepts a full workflow name directly as the selector, e.g.
+`bash ./run_farm_template.sh -d my_existing_workflow_name` (or `-w ...`).
