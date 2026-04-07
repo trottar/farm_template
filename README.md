@@ -206,3 +206,77 @@ Included examples:
   helper bodies into those template files.
 - These templates intentionally avoid ltsep-specific path resolution so they can
   be adapted to non-KaonLT code more easily.
+
+## mc-single-arm Bin-by-Bin Example
+
+This template set can also drive `trottar/mc-single-arm` for the
+`run_mc_single_arm_tree_eprime_bin` workflow (one SWIF job per E' bin index).
+
+Added starter files:
+
+- `workers/worker_mc_single_arm_eprime_bin_template.sh`
+  worker that runs `run_mc_single_arm_tree_eprime_bin KIN BIN_INDEX` and stages
+  `KIN_binBIN_INDEX.root` into `SWIF_JOB_WORK_DIR`.
+- `examples/manifest_mc_single_arm_eprime_bins_example.json`
+  manifest showing one `variant_name` per kinematic setting and one run-list file
+  containing E' bin indices.
+- `examples/mc_single_arm_kin3_bins_example.txt`
+  example bin-index list.
+- `framework_config.mc_single_arm_eprime_bin.example.json`
+  framework config for `run_farm_template.sh -C ... -s` in variant mode.
+
+Typical invocation:
+
+```bash
+./run_farm_template.sh -C framework_config.mc_single_arm_eprime_bin.example.json -s
+```
+
+Environment variables accepted by the worker:
+
+- `MC_SINGLE_ARM_REPO` (default: current working directory)
+- `MC_SINGLE_ARM_RUN_SCRIPT` (default: `run_mc_single_arm_tree_eprime_bin`, supports absolute path)
+- `TARGET_GOOD_EVENTS` (default: `1000000`)
+- `CHUNK_TRIALS` (default: `2000000`)
+- `MAX_CHUNKS` (default: `500`)
+
+The worker also guards against stale or empty ROOT outputs by deleting any pre-existing
+expected output before execution and requiring a non-empty generated file.
+
+
+### Generalized mc-single-arm starter files
+
+For easier adaptation across kinematics, use these generic files:
+
+- `workers/worker_mc_single_arm_bin_template.sh`
+  generic worker for `run_mc_single_arm_tree_eprime_bin`.
+- `framework_config.mc_single_arm_bin.example.json`
+  framework config that targets `manifest_mc_single_arm_bin*.json`.
+- `examples/manifest_mc_single_arm_bin_shms_kinB.example.json`
+  concrete SHMS kinematic example (`shms_kinB`).
+- `examples/mc_single_arm_shms_kinB_bins_example.txt`
+  bin index list for the SHMS example.
+- `farm_env/make_bin_index_list.py`
+  helper to generate bin index lists without hand-editing text files.
+
+Example bin-list generation:
+
+```bash
+python3 farm_env/make_bin_index_list.py examples/mc_single_arm_shms_kinB_bins.txt --start 0 --count 24
+```
+
+Example dry-run and submit commands:
+
+```bash
+env MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
+./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json'
+
+env MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
+./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json' -s
+```
+
+Optional worker override:
+
+- `MC_SINGLE_ARM_BIN_PAD_WIDTH` (default: `3`) controls the expected input-file bin padding width.
+
+
+For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.
