@@ -201,9 +201,8 @@ Included examples:
 
 ## Notes
 
-- The diagnose and rebalance template entrypoints reuse the current generic
-  helpers from `farm_env/`. If you want a fully detached copy later, copy the
-  helper bodies into those template files.
+- The diagnose and rebalance template entrypoints are standalone scripts in
+  `farm_env/` and do not depend on external Python packages in other repos.
 - These templates intentionally avoid ltsep-specific path resolution so they can
   be adapted to non-KaonLT code more easily.
 
@@ -289,3 +288,5 @@ If `./run_farm_template.sh` reports `Permission denied`, run `bash ./run_farm_te
 
 Diagnose mode accepts a full workflow name directly as the selector, e.g.
 `bash ./run_farm_template.sh -d my_existing_workflow_name` (or `-w ...`).
+Diagnose output reports state buckets (`active/success/failed/unknown`) and
+only lists jobs as problematic when they are in known failure states.
