@@ -1,0 +1,9 @@
+{
+  "workflow_prefix": "mc_single_arm_bin",
+  "manifest_dir": "./examples",
+  "manifest_glob": "manifest_mc_single_arm_eprime_bins*.json",
+  "mode": "variant",
+  "worker_script": "./workers/worker_mc_single_arm_eprime_bin_template.sh",
+  "account": "hallc",
+  "partition": "production"
+}

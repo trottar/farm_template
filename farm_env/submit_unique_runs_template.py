@@ -24,12 +24,14 @@ from template_common import (
     ManifestJob,
     OutputSpec,
     create_workflow_if_needed,
+    build_worker_invocation,
     format_remote_arg,
     load_existing_job_names,
     load_manifest_jobs,
     read_runs_file,
     render_outputs,
     render_worker_args,
+    render_worker_env,
     run_command,
     safe_name,
     summarize_cmd,
@@ -41,6 +43,7 @@ class RunPlan:
     run: int
     job_name: str
     worker_args: Tuple[str, ...]
+    worker_env: Tuple[Tuple[str, str], ...]
     outputs_all: Tuple[OutputSpec, ...]
     outputs_missing: Tuple[OutputSpec, ...]
     partition: str
@@ -110,6 +113,13 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                 grouped[run] = {
                     "worker_args": worker_args,
                     "outputs": outputs,
+                    "worker_env": render_worker_env(
+                        manifest_job.worker_env_raw,
+                        selector=selector_label,
+                        run=run,
+                        variant=manifest_job.variant_name,
+                        manifest_name=manifest_job.manifest_path.stem,
+                    ),
                     "partition": manifest_job.partition,
                     "variants": [manifest_job.variant_name],
                 }
@@ -119,6 +129,15 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                 raise ValueError(f"Conflicting worker_args for run {run} across matching manifests")
             if tuple(existing["outputs"]) != outputs:
                 raise ValueError(f"Conflicting outputs for run {run} across matching manifests")
+            worker_env = render_worker_env(
+                manifest_job.worker_env_raw,
+                selector=selector_label,
+                run=run,
+                variant=manifest_job.variant_name,
+                manifest_name=manifest_job.manifest_path.stem,
+            )
+            if tuple(existing["worker_env"]) != worker_env:
+                raise ValueError(f"Conflicting worker_env for run {run} across matching manifests")
             if str(existing["partition"]) != manifest_job.partition:
                 raise ValueError(f"Conflicting partitions for run {run} across matching manifests")
             existing["variants"].append(manifest_job.variant_name)  # type: ignore[index]
@@ -148,6 +167,7 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                 outputs_all=outputs_all,
                 outputs_missing=outputs_missing,
                 partition=str(merged["partition"]),
+                worker_env=tuple(merged["worker_env"]),  # type: ignore[arg-type]
                 variants=tuple(sorted(set(merged["variants"]))),  # type: ignore[arg-type]
                 status=status,
                 note=note,
@@ -185,7 +205,7 @@ def build_add_job_command(args: argparse.Namespace, plan: RunPlan) -> List[str]:
     ]
     for output in plan.outputs_missing:
         cmd.extend(["-output", output.local_name, format_remote_arg(output.remote_file)])
-    cmd.extend([args.worker_script, *plan.worker_args])
+    cmd.extend(build_worker_invocation(args.worker_script, plan.worker_args, plan.worker_env))
     return cmd
 
 
