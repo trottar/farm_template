@@ -206,3 +206,38 @@ Included examples:
   helper bodies into those template files.
 - These templates intentionally avoid ltsep-specific path resolution so they can
   be adapted to non-KaonLT code more easily.
+
+## mc-single-arm Bin-by-Bin Example
+
+This template set can also drive `trottar/mc-single-arm` for the
+`run_mc_single_arm_tree_eprime_bin` workflow (one SWIF job per E' bin index).
+
+Added starter files:
+
+- `workers/worker_mc_single_arm_eprime_bin_template.sh`
+  worker that runs `run_mc_single_arm_tree_eprime_bin KIN BIN_INDEX` and stages
+  `KIN_binBIN_INDEX.root` into `SWIF_JOB_WORK_DIR`.
+- `examples/manifest_mc_single_arm_eprime_bins_example.json`
+  manifest showing one `variant_name` per kinematic setting and one run-list file
+  containing E' bin indices.
+- `examples/mc_single_arm_kin3_bins_example.txt`
+  example bin-index list.
+- `framework_config.mc_single_arm_eprime_bin.example.json`
+  framework config for `run_farm_template.sh -C ... -s` in variant mode.
+
+Typical invocation:
+
+```bash
+./run_farm_template.sh -C framework_config.mc_single_arm_eprime_bin.example.json -s
+```
+
+Environment variables accepted by the worker:
+
+- `MC_SINGLE_ARM_REPO` (default: current working directory)
+- `MC_SINGLE_ARM_RUN_SCRIPT` (default: `run_mc_single_arm_tree_eprime_bin`, supports absolute path)
+- `TARGET_GOOD_EVENTS` (default: `1000000`)
+- `CHUNK_TRIALS` (default: `2000000`)
+- `MAX_CHUNKS` (default: `500`)
+
+The worker also guards against stale or empty ROOT outputs by deleting any pre-existing
+expected output before execution and requiring a non-empty generated file.
