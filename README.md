@@ -241,3 +241,39 @@ Environment variables accepted by the worker:
 
 The worker also guards against stale or empty ROOT outputs by deleting any pre-existing
 expected output before execution and requiring a non-empty generated file.
+
+
+### Generalized mc-single-arm starter files
+
+For easier adaptation across kinematics, use these generic files:
+
+- `workers/worker_mc_single_arm_bin_template.sh`
+  generic worker for `run_mc_single_arm_tree_eprime_bin`.
+- `framework_config.mc_single_arm_bin.example.json`
+  framework config that targets `manifest_mc_single_arm_bin*.json`.
+- `examples/manifest_mc_single_arm_bin_shms_kinB.example.json`
+  concrete SHMS kinematic example (`shms_kinB`).
+- `examples/mc_single_arm_shms_kinB_bins_example.txt`
+  bin index list for the SHMS example.
+- `farm_env/make_bin_index_list.py`
+  helper to generate bin index lists without hand-editing text files.
+
+Example bin-list generation:
+
+```bash
+python3 farm_env/make_bin_index_list.py examples/mc_single_arm_shms_kinB_bins.txt --start 0 --count 24
+```
+
+Example dry-run and submit commands:
+
+```bash
+MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
+./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json'
+
+MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
+./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json' -s
+```
+
+Optional worker override:
+
+- `MC_SINGLE_ARM_BIN_PAD_WIDTH` (default: `3`) controls the expected input-file bin padding width.
