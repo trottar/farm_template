@@ -17,8 +17,7 @@
         }
       ],
       "worker_env": {
-        "MC_SINGLE_ARM_REPO": "${MC_SINGLE_ARM_REPO}",
-        "MC_SINGLE_ARM_RUN_SCRIPT": "${MC_SINGLE_ARM_RUN_SCRIPT}"
+        "MC_SINGLE_ARM_REPO": "${MC_SINGLE_ARM_REPO}"
       }
     }
   ]
