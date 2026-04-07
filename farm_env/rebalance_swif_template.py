@@ -1,34 +1,16 @@
 #!/usr/bin/env python3
-"""Template placeholder to inspect workflow status before manual SWIF rebalancing."""
+"""Template entrypoint for SWIF rebalancing summary."""
 
 from __future__ import annotations
 
-import argparse
-import subprocess
 import sys
+from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Show workflow summary to guide manual rebalancing.")
-    parser.add_argument("workflow", help="SWIF workflow name")
-    parser.add_argument("--swif2-bin", default="swif2", help="SWIF2 executable")
-    parser.add_argument("--apply", action="store_true", help="Reserved for future auto-apply support")
-    parser.add_argument("--no-run", action="store_true", help="Reserved for compatibility")
-    return parser.parse_args()
-
-
-def main() -> int:
-    args = parse_args()
-    if args.apply:
-        print("WARNING: --apply is not implemented in this template; showing summary only.")
-
-    cmd = [args.swif2_bin, "status", args.workflow, "-summary"]
-    result = subprocess.run(cmd, text=True, capture_output=True, check=False)
-    if result.stdout:
-        print(result.stdout.rstrip())
-    if result.stderr:
-        print(result.stderr.rstrip(), file=sys.stderr)
-    return result.returncode
+from rebalance_swif import main
 
 
 if __name__ == "__main__":
