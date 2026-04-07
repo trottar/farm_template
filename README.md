@@ -252,7 +252,7 @@ For easier adaptation across kinematics, use these generic files:
 - `framework_config.mc_single_arm_bin.example.json`
   framework config that targets `manifest_mc_single_arm_bin*.json`.
 - `examples/manifest_mc_single_arm_bin_shms_kinB.example.json`
-  concrete SHMS kinematic example (`shms_kinB`).
+  concrete SHMS kinematic example (`kinB_shms`).
 - `examples/mc_single_arm_shms_kinB_bins_example.txt`
   bin index list for the SHMS example.
 - `farm_env/make_bin_index_list.py`
@@ -261,8 +261,13 @@ For easier adaptation across kinematics, use these generic files:
 Example bin-list generation:
 
 ```bash
-python3 farm_env/make_bin_index_list.py examples/mc_single_arm_shms_kinB_bins.txt --start 0 --count 24
+python3 farm_env/make_bin_index_list.py examples/mc_single_arm_shms_kinB_bins_example.txt \
+  --edges-file farm_env/mc_single_arm_edges_by_kin.json --kin kinB_shms
 ```
+
+
+The checked-in edge table is in `farm_env/mc_single_arm_edges_by_kin.json`.
+For each kinematic setting, bin-count is computed as `len(edges)-1` (e.g. `kinB_shms` has 72 edges => 71 bins, indexed `0..70`).
 
 Example dry-run and submit commands:
 
