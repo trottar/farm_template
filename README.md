@@ -232,7 +232,7 @@ Typical invocation:
 
 Environment variables accepted by the worker:
 
-- `MC_SINGLE_ARM_REPO` (default: `SWIF_JOB_WORK_DIR`, then `SWIF_JOB_STAGE_DIR`, then current working directory)
+- `MC_SINGLE_ARM_REPO` (**required**; must be an absolute path visible on batch nodes)
 - `MC_SINGLE_ARM_RUN_SCRIPT` (default: `run_mc_single_arm_tree_eprime_bin`, supports absolute path)
 - `TARGET_GOOD_EVENTS` (default: `1000000`)
 - `CHUNK_TRIALS` (default: `2000000`)
@@ -281,6 +281,10 @@ bash ./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -
 Optional worker override:
 
 - `MC_SINGLE_ARM_BIN_PAD_WIDTH` (default: `3`) controls the expected input-file bin padding width.
+
+Use manifest `worker_env` entries to forward environment variables into worker jobs (for example `MC_SINGLE_ARM_REPO` and `MC_SINGLE_ARM_RUN_SCRIPT`). `worker_env` values support shell-style `$VARNAME` expansion on the submit host. Unresolved variables now raise an error at submit-time so jobs do not launch with ambiguous paths.
+
+Worker scripts require absolute paths on batch nodes. If `SWIF_JOB_WORK_DIR`/`SWIF_JOB_STAGE_DIR` are not set, staging falls back to `/scratch/$USER/slurm/$SLURM_JOB_ID`.
 
 
 For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.

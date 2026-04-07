@@ -4,7 +4,7 @@ set -euo pipefail
 
 KIN_NAME="${1:-}"
 BIN_INDEX="${2:-}"
-JOB_WORK_DIR="${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-$(pwd)}}"
+JOB_WORK_DIR="${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-/scratch/${USER}/slurm/${SLURM_JOB_ID:-$$}}}"
 
 if [[ -z "${KIN_NAME}" || -z "${BIN_INDEX}" ]]; then
     echo "Usage: $0 KIN_NAME BIN_INDEX" >&2
@@ -22,11 +22,24 @@ if ! [[ "${BIN_INDEX}" =~ ^[0-9]+$ ]]; then
     exit 2
 fi
 
-MC_SINGLE_ARM_REPO="${MC_SINGLE_ARM_REPO:-${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-${PWD}}}}"
+MC_SINGLE_ARM_REPO="${MC_SINGLE_ARM_REPO:-}"
 RUN_SCRIPT="${MC_SINGLE_ARM_RUN_SCRIPT:-run_mc_single_arm_tree_eprime_bin}"
 TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS:-1000000}"
 CHUNK_TRIALS="${CHUNK_TRIALS:-2000000}"
 MAX_CHUNKS="${MAX_CHUNKS:-500}"
+
+if [[ -z "${MC_SINGLE_ARM_REPO}" ]]; then
+    echo "ERROR: MC_SINGLE_ARM_REPO is required and must be an absolute path on batch nodes." >&2
+    exit 3
+fi
+if [[ "${MC_SINGLE_ARM_REPO}" != /* ]]; then
+    echo "ERROR: MC_SINGLE_ARM_REPO must be an absolute path: ${MC_SINGLE_ARM_REPO}" >&2
+    exit 3
+fi
+if [[ "${JOB_WORK_DIR}" != /* ]]; then
+    echo "ERROR: JOB_WORK_DIR resolved to non-absolute path: ${JOB_WORK_DIR}" >&2
+    exit 3
+fi
 
 if [[ ! -d "${MC_SINGLE_ARM_REPO}" ]]; then
     echo "ERROR: MC_SINGLE_ARM_REPO does not exist: ${MC_SINGLE_ARM_REPO}" >&2

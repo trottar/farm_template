@@ -8,7 +8,7 @@ import shlex
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 DEFAULT_SWIF2 = os.environ.get("SWIF2_BIN", "swif2")
 DEFAULT_ACCOUNT = "hallc"
@@ -37,6 +37,7 @@ class ManifestJob:
     partition: str
     runs_files: Tuple[Path, ...]
     worker_args_raw: Tuple[str, ...]
+    worker_env_raw: Tuple[Tuple[str, str], ...]
     outputs_raw: Tuple[Dict[str, str], ...]
 
 
@@ -146,11 +147,11 @@ def load_manifest_jobs(manifest_dir: Path, manifest_glob: str, partition_overrid
                     output_entry["remote_file_template"] = remote_file_template
                 outputs_raw.append(output_entry)
 
-            worker_args_raw: Tuple[str, ...]
-            if isinstance(job.get("worker_args"), list):
-                worker_args_raw = tuple(str(item) for item in job["worker_args"])
-            else:
-                worker_args_raw = ()
+            worker_args_raw = tuple(str(item) for item in job.get("worker_args", [])) if isinstance(job.get("worker_args"), list) else ()
+
+            worker_env_raw: Tuple[Tuple[str, str], ...] = ()
+            if isinstance(job.get("worker_env"), dict):
+                worker_env_raw = tuple((str(k), str(v)) for k, v in job["worker_env"].items())
 
             jobs.append(
                 ManifestJob(
@@ -159,6 +160,7 @@ def load_manifest_jobs(manifest_dir: Path, manifest_glob: str, partition_overrid
                     partition=str(partition_override or job.get("partition") or default_partition),
                     runs_files=runs_files,
                     worker_args_raw=worker_args_raw,
+                    worker_env_raw=worker_env_raw,
                     outputs_raw=tuple(outputs_raw),
                 )
             )
@@ -173,36 +175,37 @@ def render_worker_args(raw_args: Sequence[str], *, selector: str, run: int, vari
     )
 
 
+def render_worker_env(raw_env: Sequence[Tuple[str, str]], *, selector: str, run: int, variant: str, manifest_name: str) -> Tuple[Tuple[str, str], ...]:
+    rendered: List[Tuple[str, str]] = []
+    token_map = {
+        "{selector}": selector,
+        "{run}": str(run),
+        "{run5}": f"{run:05d}",
+        "{variant}": variant,
+        "{manifest}": manifest_name,
+    }
+    for key, value_template in raw_env:
+        value = value_template
+        for token, token_value in token_map.items():
+            value = value.replace(token, token_value)
+        value = os.path.expandvars(value)
+        if "$" in value:
+            raise ValueError(
+                f"Unresolved environment variable in worker_env for variant={variant}, run={run}: {key}={value_template}"
+            )
+        if value:
+            rendered.append((key, value))
+    return tuple(rendered)
+
+
 def render_outputs(outputs_raw: Sequence[Dict[str, str]], *, selector: str, run: int, variant: str, manifest_name: str) -> Tuple[OutputSpec, ...]:
     rendered: List[OutputSpec] = []
     for raw_output in outputs_raw:
-        local_name = format_tokens(
-            raw_output["local_template"],
-            selector=selector,
-            run=run,
-            variant=variant,
-            manifest_name=manifest_name,
-        )
+        local_name = format_tokens(raw_output["local_template"], selector=selector, run=run, variant=variant, manifest_name=manifest_name)
         if "remote_file_template" in raw_output:
-            remote_path = Path(
-                format_tokens(
-                    raw_output["remote_file_template"],
-                    selector=selector,
-                    run=run,
-                    variant=variant,
-                    manifest_name=manifest_name,
-                )
-            )
+            remote_path = Path(format_tokens(raw_output["remote_file_template"], selector=selector, run=run, variant=variant, manifest_name=manifest_name))
         else:
-            remote_dir = Path(
-                format_tokens(
-                    raw_output["remote_dir"],
-                    selector=selector,
-                    run=run,
-                    variant=variant,
-                    manifest_name=manifest_name,
-                )
-            )
+            remote_dir = Path(format_tokens(raw_output["remote_dir"], selector=selector, run=run, variant=variant, manifest_name=manifest_name))
             remote_path = remote_dir / local_name
         rendered.append(OutputSpec(local_name=local_name, remote_file=remote_path))
     return tuple(rendered)
@@ -241,3 +244,10 @@ def create_workflow_if_needed(swif2_bin: str, workflow: str, max_concurrent: int
 
 def summarize_cmd(cmd: Sequence[str]) -> str:
     return " ".join(shlex.quote(part) for part in cmd)
+
+
+def build_worker_invocation(worker_script: str, worker_args: Sequence[str], worker_env: Sequence[Tuple[str, str]]) -> List[str]:
+    exported = [f"{key}={value}" for key, value in worker_env if key and value]
+    if not exported:
+        return [worker_script, *worker_args]
+    return ["env", *exported, worker_script, *worker_args]
