@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""
-Generic template entrypoint for SWIF failure diagnosis.
+"""Template entrypoint for SWIF failure diagnosis."""
 
-This template intentionally reuses the current generic helper from
-`farm_env/diagnose_swif_failures.py`. If you later want a fully detached copy
-for another repo, copy that helper body into this file and customize the
-regexes/cache-path mapping there.
-"""
+from __future__ import annotations
 
-from farm_env.diagnose_swif_failures import main
+import sys
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from diagnose_swif_failures import main
 
 
 if __name__ == "__main__":
