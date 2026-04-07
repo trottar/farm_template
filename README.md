@@ -267,13 +267,17 @@ python3 farm_env/make_bin_index_list.py examples/mc_single_arm_shms_kinB_bins.tx
 Example dry-run and submit commands:
 
 ```bash
-MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
-./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json'
+env MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
+bash ./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json'
 
-MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
-./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json' -s
+env MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
+bash ./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json' -s
 ```
 
 Optional worker override:
 
 - `MC_SINGLE_ARM_BIN_PAD_WIDTH` (default: `3`) controls the expected input-file bin padding width.
+
+
+For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.
+If `./run_farm_template.sh` reports `Permission denied`, run `bash ./run_farm_template.sh ...` to bypass missing executable-bit issues in shared checkouts.

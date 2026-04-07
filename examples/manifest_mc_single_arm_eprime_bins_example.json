@@ -13,7 +13,7 @@
       "outputs": [
         {
           "local_template": "kin3_hms_bin{run}.root",
-          "remote_dir": "/mss/hallc/example/mc_single_arm/kin3_hms"
+          "remote_dir": "/volatile/hallc/c-polhe3/trottar/OUTPUT/mc_single_arm/kin3_hms"
         }
       ]
     }
