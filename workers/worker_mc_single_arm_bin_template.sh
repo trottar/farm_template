@@ -28,6 +28,8 @@ TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS:-1000000}"
 CHUNK_TRIALS="${CHUNK_TRIALS:-2000000}"
 MAX_CHUNKS="${MAX_CHUNKS:-500}"
 BIN_PAD_WIDTH="${MC_SINGLE_ARM_BIN_PAD_WIDTH:-3}"
+MC_SINGLE_ARM_USE_LOCAL_COPY="${MC_SINGLE_ARM_USE_LOCAL_COPY:-1}"
+MC_SINGLE_ARM_BUILD_ROOT="${MC_SINGLE_ARM_BUILD_ROOT:-${JOB_WORK_DIR}/mc_single_arm_build}"
 
 if [[ -z "${MC_SINGLE_ARM_REPO}" ]]; then
     echo "ERROR: MC_SINGLE_ARM_REPO is required and must be an absolute path on batch nodes." >&2
@@ -47,10 +49,23 @@ if [[ ! -d "${MC_SINGLE_ARM_REPO}" ]]; then
     exit 3
 fi
 
+WORK_REPO="${MC_SINGLE_ARM_REPO}"
+if [[ "${MC_SINGLE_ARM_USE_LOCAL_COPY}" = "1" ]]; then
+    WORK_REPO="${MC_SINGLE_ARM_BUILD_ROOT}"
+    mkdir -p "${WORK_REPO}"
+    if command -v rsync >/dev/null 2>&1; then
+        rsync -a --delete --exclude='.git' "${MC_SINGLE_ARM_REPO}/" "${WORK_REPO}/"
+    else
+        rm -rf "${WORK_REPO}"
+        mkdir -p "${WORK_REPO}"
+        cp -a "${MC_SINGLE_ARM_REPO}/." "${WORK_REPO}/"
+    fi
+fi
+
 if [[ "${RUN_SCRIPT}" = /* ]]; then
     SCRIPT_PATH="${RUN_SCRIPT}"
 else
-    SCRIPT_PATH="${MC_SINGLE_ARM_REPO}/${RUN_SCRIPT}"
+    SCRIPT_PATH="${WORK_REPO}/${RUN_SCRIPT}"
 fi
 
 if [[ ! -f "${SCRIPT_PATH}" ]]; then
@@ -64,11 +79,11 @@ if ! [[ "${TARGET_GOOD_EVENTS}" =~ ^[0-9]+$ && "${CHUNK_TRIALS}" =~ ^[0-9]+$ && 
 fi
 
 run_tag="${KIN_NAME}_bin$(printf "%0${BIN_PAD_WIDTH}d" "${BIN_INDEX}")"
-expected_output="${MC_SINGLE_ARM_REPO}/outfiles/${run_tag}.root"
+expected_output="${WORK_REPO}/outfiles/${run_tag}.root"
 
 rm -f "${expected_output}"
 
-pushd "${MC_SINGLE_ARM_REPO}" >/dev/null
+pushd "${WORK_REPO}" >/dev/null
 if [[ -x "${SCRIPT_PATH}" ]]; then
     TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS}" \
     CHUNK_TRIALS="${CHUNK_TRIALS}" \

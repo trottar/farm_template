@@ -281,6 +281,8 @@ bash ./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -
 Optional worker override:
 
 - `MC_SINGLE_ARM_BIN_PAD_WIDTH` (default: `3`) controls the expected input-file bin padding width.
+- `MC_SINGLE_ARM_USE_LOCAL_COPY` (default: `1`) copies the mc-single-arm repo to local job scratch before building/running to avoid network filesystem stale-handle build failures.
+- `MC_SINGLE_ARM_BUILD_ROOT` (default: `${SWIF_JOB_WORK_DIR}/mc_single_arm_build`) controls where the local working copy is created when local-copy mode is enabled.
 
 Use manifest `worker_env` entries to forward required environment variables into worker jobs (for example `MC_SINGLE_ARM_REPO`). Keep optional variables (like `MC_SINGLE_ARM_RUN_SCRIPT`) out of `worker_env` unless they are explicitly defined. `worker_env` values support shell-style `$VARNAME` expansion on the submit host. Unresolved variables raise an error at submit-time so jobs do not launch with ambiguous paths.
 
