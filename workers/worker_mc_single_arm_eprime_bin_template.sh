@@ -19,15 +19,6 @@ normalize_job_path() {
     printf '%s\n' "${path}"
 }
 
-if [[ -n "${SWIF_JOB_WORK_DIR:-}" ]]; then
-    normalized_job_work_dir="$(normalize_job_path "${SWIF_JOB_WORK_DIR}")"
-    export SWIF_JOB_WORK_DIR="${normalized_job_work_dir}"
-fi
-if [[ -n "${SWIF_JOB_STAGE_DIR:-}" ]]; then
-    normalized_job_stage_dir="$(normalize_job_path "${SWIF_JOB_STAGE_DIR}")"
-    export SWIF_JOB_STAGE_DIR="${normalized_job_stage_dir}"
-fi
-
 KIN_NAME="${1:-}"
 BIN_INDEX="${2:-}"
 JOB_WORK_DIR="$(normalize_job_path "${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-/scratch/${USER}/slurm/${SLURM_JOB_ID:-$$}}}")"
@@ -55,6 +46,8 @@ CHUNK_TRIALS="${CHUNK_TRIALS:-2000000}"
 MAX_CHUNKS="${MAX_CHUNKS:-500}"
 MC_SINGLE_ARM_USE_LOCAL_COPY="${MC_SINGLE_ARM_USE_LOCAL_COPY:-1}"
 MC_SINGLE_ARM_BUILD_ROOT="${MC_SINGLE_ARM_BUILD_ROOT:-${JOB_WORK_DIR}/mc_single_arm_build}"
+JOB_CACHE_DIR="${JOB_WORK_DIR}/.cache"
+JOB_TMP_DIR="${JOB_WORK_DIR}/tmp"
 
 if [[ -z "${MC_SINGLE_ARM_REPO}" ]]; then
     echo "ERROR: MC_SINGLE_ARM_REPO is required and must be an absolute path on batch nodes." >&2
@@ -68,11 +61,21 @@ if [[ "${JOB_WORK_DIR}" != /* ]]; then
     echo "ERROR: JOB_WORK_DIR resolved to non-absolute path: ${JOB_WORK_DIR}" >&2
     exit 3
 fi
+if [[ ! -d "${JOB_WORK_DIR}" ]]; then
+    echo "ERROR: JOB_WORK_DIR does not exist on the batch node: ${JOB_WORK_DIR}" >&2
+    exit 3
+fi
+if [[ ! -w "${JOB_WORK_DIR}" ]]; then
+    echo "ERROR: JOB_WORK_DIR is not writable on the batch node: ${JOB_WORK_DIR}" >&2
+    exit 3
+fi
 
 if [[ ! -d "${MC_SINGLE_ARM_REPO}" ]]; then
     echo "ERROR: MC_SINGLE_ARM_REPO does not exist: ${MC_SINGLE_ARM_REPO}" >&2
     exit 3
 fi
+
+mkdir -p "${JOB_CACHE_DIR}" "${JOB_TMP_DIR}"
 
 WORK_REPO="${MC_SINGLE_ARM_REPO}"
 if [[ "${MC_SINGLE_ARM_USE_LOCAL_COPY}" = "1" ]]; then
@@ -111,11 +114,19 @@ rm -f "${expected_output}"
 
 pushd "${WORK_REPO}" >/dev/null
 if [[ -x "${SCRIPT_PATH}" ]]; then
+    XDG_CACHE_HOME="${JOB_CACHE_DIR}" \
+    TMPDIR="${JOB_TMP_DIR}" \
+    TMP="${JOB_TMP_DIR}" \
+    TEMP="${JOB_TMP_DIR}" \
     TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS}" \
     CHUNK_TRIALS="${CHUNK_TRIALS}" \
     MAX_CHUNKS="${MAX_CHUNKS}" \
     "${SCRIPT_PATH}" "${KIN_NAME}" "${BIN_INDEX}"
 else
+    XDG_CACHE_HOME="${JOB_CACHE_DIR}" \
+    TMPDIR="${JOB_TMP_DIR}" \
+    TMP="${JOB_TMP_DIR}" \
+    TEMP="${JOB_TMP_DIR}" \
     TARGET_GOOD_EVENTS="${TARGET_GOOD_EVENTS}" \
     CHUNK_TRIALS="${CHUNK_TRIALS}" \
     MAX_CHUNKS="${MAX_CHUNKS}" \
@@ -132,7 +143,6 @@ if [[ ! -s "${expected_output}" ]]; then
     exit 4
 fi
 
-mkdir -p "${JOB_WORK_DIR}"
 staged_name="${KIN_NAME}_bin${BIN_INDEX}.root"
 staged_file="${JOB_WORK_DIR}/${staged_name}"
 cp -f "${expected_output}" "${staged_file}"

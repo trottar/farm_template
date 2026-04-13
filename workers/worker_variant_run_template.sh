@@ -19,15 +19,6 @@ normalize_job_path() {
     printf '%s\n' "${path}"
 }
 
-if [[ -n "${SWIF_JOB_WORK_DIR:-}" ]]; then
-    normalized_job_work_dir="$(normalize_job_path "${SWIF_JOB_WORK_DIR}")"
-    export SWIF_JOB_WORK_DIR="${normalized_job_work_dir}"
-fi
-if [[ -n "${SWIF_JOB_STAGE_DIR:-}" ]]; then
-    normalized_job_stage_dir="$(normalize_job_path "${SWIF_JOB_STAGE_DIR}")"
-    export SWIF_JOB_STAGE_DIR="${normalized_job_stage_dir}"
-fi
-
 VARIANT_NAME="${1:-}"
 RUN_ID="${2:-}"
 JOB_WORK_DIR="$(normalize_job_path "${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-$(pwd)}}")"
