@@ -2,8 +2,34 @@
 
 set -euo pipefail
 
+normalize_job_path() {
+    local path="${1:-}"
+    if [[ -z "${path}" ]]; then
+        printf '%s\n' ""
+        return
+    fi
+    if [[ "${path}" == /scratch/slurm/* ]]; then
+        if [[ -z "${USER:-}" ]]; then
+            echo "ERROR: USER must be set to normalize scratch path: ${path}" >&2
+            return 1
+        fi
+        printf '/scratch/%s/slurm/%s\n' "${USER}" "${path#/scratch/slurm/}"
+        return
+    fi
+    printf '%s\n' "${path}"
+}
+
+if [[ -n "${SWIF_JOB_WORK_DIR:-}" ]]; then
+    normalized_job_work_dir="$(normalize_job_path "${SWIF_JOB_WORK_DIR}")"
+    export SWIF_JOB_WORK_DIR="${normalized_job_work_dir}"
+fi
+if [[ -n "${SWIF_JOB_STAGE_DIR:-}" ]]; then
+    normalized_job_stage_dir="$(normalize_job_path "${SWIF_JOB_STAGE_DIR}")"
+    export SWIF_JOB_STAGE_DIR="${normalized_job_stage_dir}"
+fi
+
 RUN_ID="${1:-}"
-JOB_WORK_DIR="${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-$(pwd)}}"
+JOB_WORK_DIR="$(normalize_job_path "${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-$(pwd)}}")"
 
 if [[ -z "${RUN_ID}" ]]; then
     echo "Usage: $0 RUN_ID" >&2

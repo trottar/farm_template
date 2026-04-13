@@ -286,7 +286,7 @@ Optional worker override:
 
 Use manifest `worker_env` entries to forward required environment variables into worker jobs (for example `MC_SINGLE_ARM_REPO`). Keep optional variables (like `MC_SINGLE_ARM_RUN_SCRIPT`) out of `worker_env` unless they are explicitly defined. `worker_env` values support shell-style `$VARNAME` expansion on the submit host. Unresolved variables raise an error at submit-time so jobs do not launch with ambiguous paths.
 
-Worker scripts require absolute paths on batch nodes. If `SWIF_JOB_WORK_DIR`/`SWIF_JOB_STAGE_DIR` are not set, staging falls back to `/scratch/$USER/slurm/$SLURM_JOB_ID`.
+Worker scripts require absolute paths on batch nodes. If `SWIF_JOB_WORK_DIR`/`SWIF_JOB_STAGE_DIR` are not set, staging falls back to `/scratch/$USER/slurm/$SLURM_JOB_ID`. If SWIF exposes a legacy `/scratch/slurm/...` path, the workers normalize it to `/scratch/$USER/slurm/...` before staging or local-build setup.
 
 
 For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.
