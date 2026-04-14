@@ -19,6 +19,25 @@ normalize_job_path() {
     printf '%s\n' "${path}"
 }
 
+ensure_job_work_dir() {
+    local path="$1"
+    local parent_dir
+    parent_dir="$(dirname "${path}")"
+
+    if [[ -d "${path}" ]]; then
+        return
+    fi
+    if [[ ! -d "${parent_dir}" ]]; then
+        echo "ERROR: JOB_WORK_DIR parent does not exist on the batch node: ${parent_dir}" >&2
+        exit 3
+    fi
+    if [[ ! -w "${parent_dir}" ]]; then
+        echo "ERROR: JOB_WORK_DIR parent is not writable on the batch node: ${parent_dir}" >&2
+        exit 3
+    fi
+    mkdir "${path}"
+}
+
 KIN_NAME="${1:-}"
 BIN_INDEX="${2:-}"
 JOB_WORK_DIR="$(normalize_job_path "${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-/scratch/${USER}/slurm/${SLURM_JOB_ID:-$$}}}")"
@@ -62,10 +81,7 @@ if [[ "${JOB_WORK_DIR}" != /* ]]; then
     echo "ERROR: JOB_WORK_DIR resolved to non-absolute path: ${JOB_WORK_DIR}" >&2
     exit 3
 fi
-if [[ ! -d "${JOB_WORK_DIR}" ]]; then
-    echo "ERROR: JOB_WORK_DIR does not exist on the batch node: ${JOB_WORK_DIR}" >&2
-    exit 3
-fi
+ensure_job_work_dir "${JOB_WORK_DIR}"
 if [[ ! -w "${JOB_WORK_DIR}" ]]; then
     echo "ERROR: JOB_WORK_DIR is not writable on the batch node: ${JOB_WORK_DIR}" >&2
     exit 3

@@ -19,9 +19,29 @@ normalize_job_path() {
     printf '%s\n' "${path}"
 }
 
+ensure_job_work_dir() {
+    local path="$1"
+    local parent_dir
+    parent_dir="$(dirname "${path}")"
+
+    if [[ -d "${path}" ]]; then
+        return
+    fi
+    if [[ ! -d "${parent_dir}" ]]; then
+        echo "ERROR: JOB_WORK_DIR parent does not exist on the batch node: ${parent_dir}" >&2
+        exit 1
+    fi
+    if [[ ! -w "${parent_dir}" ]]; then
+        echo "ERROR: JOB_WORK_DIR parent is not writable on the batch node: ${parent_dir}" >&2
+        exit 1
+    fi
+    mkdir "${path}"
+}
+
 VARIANT_NAME="${1:-}"
 RUN_ID="${2:-}"
 JOB_WORK_DIR="$(normalize_job_path "${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-$(pwd)}}")"
+ensure_job_work_dir "${JOB_WORK_DIR}"
 
 if [[ -z "${VARIANT_NAME}" || -z "${RUN_ID}" ]]; then
     echo "Usage: $0 VARIANT_NAME RUN_ID" >&2
