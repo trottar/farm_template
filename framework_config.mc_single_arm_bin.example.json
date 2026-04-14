@@ -4,6 +4,9 @@
   "manifest_glob": "manifest_mc_single_arm_bin*.json",
   "mode": "variant",
   "worker_script": "./workers/worker_mc_single_arm_bin_template.sh",
+  "worker_env": {
+    "MC_SINGLE_ARM_REPO": "//group/c-polhe3/Users/trottar/mc-single-arm"
+  },
   "account": "hallc",
   "partition": "production"
 }

@@ -237,6 +237,9 @@ if [[ "${rebalance_flag:-false}" = "true" ]]; then
 fi
 
 cmd=(python3 "${MODE_SCRIPT}" --manifest-dir "${manifest_dir}" --manifest-glob "${manifest_glob}" --workflow-name "${WORKFLOW}" --worker-script "${worker_script}")
+if [[ -n "${framework_config:-}" ]]; then
+    cmd+=(--framework-config "${framework_config}")
+fi
 if [[ -n "${SELECTOR}" ]]; then
     cmd=("${cmd[@]:0:2}" "${SELECTOR}" "${cmd[@]:2}")
 fi

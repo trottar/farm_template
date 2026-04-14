@@ -15,10 +15,7 @@
           "local_template": "kinB_shms_bin{run}.root",
           "remote_dir": "/volatile/hallc/c-polhe3/$USER/OUTPUT/mc_single_arm/kinB_shms"
         }
-      ],
-      "worker_env": {
-        "MC_SINGLE_ARM_REPO": "${MC_SINGLE_ARM_REPO}"
-      }
+      ]
     }
   ]
 }

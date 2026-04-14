@@ -100,6 +100,40 @@ def resolve_submit_path_arg(value: str, *, what: str, must_exist: bool = True, r
     return str(path)
 
 
+def load_framework_worker_env(config_path_text: Optional[str]) -> Tuple[Tuple[str, str], ...]:
+    if not config_path_text:
+        return ()
+    config_path = Path(resolve_submit_path_arg(config_path_text, what="framework_config", must_exist=True))
+    with config_path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    raw_worker_env = payload.get("worker_env", {})
+    if raw_worker_env is None:
+        return ()
+    if not isinstance(raw_worker_env, dict):
+        raise ValueError(f"framework_config worker_env must be an object: {config_path}")
+
+    rendered: List[Tuple[str, str]] = []
+    for key, value in raw_worker_env.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise ValueError(f"framework_config worker_env must contain string keys/values: {config_path}")
+        normalized = normalize_path_like_value(
+            value,
+            base_dir=config_path.parent,
+            context=f"framework worker_env[{key}] in {config_path.name}",
+            force_path=env_value_should_be_path(key, value),
+        )
+        rendered.append((key, normalized))
+    return tuple(rendered)
+
+
+def merge_worker_env_layers(*layers: Sequence[Tuple[str, str]]) -> Tuple[Tuple[str, str], ...]:
+    merged: Dict[str, str] = {}
+    for layer in layers:
+        for key, value in layer:
+            merged[key] = value
+    return tuple(merged.items())
+
+
 def format_tokens(template: str, *, selector: str, run: int, variant: str, manifest_name: str) -> str:
     return template.format(
         selector=selector,

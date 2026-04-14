@@ -192,10 +192,12 @@ Supported top-level fields:
 - `mode`
   `unique` or `variant`
 - `worker_script`
+- `worker_env`
 - `account`
 - `partition`
 
 The config is optional. Command-line flags still override it.
+Framework-level `worker_env` entries are merged into every submitted job. If a manifest job also defines the same key, the manifest value wins.
 
 Framework path rules:
 
@@ -242,7 +244,7 @@ Typical invocation:
 ./run_farm_template.sh -C framework_config.mc_single_arm_eprime_bin.example.json -s
 ```
 
-Environment variables accepted by the worker:
+Worker settings accepted by the worker:
 
 - `MC_SINGLE_ARM_REPO` (**required**; must be an absolute path visible on batch nodes)
 - `MC_SINGLE_ARM_RUN_SCRIPT` (default: `run_mc_single_arm_tree_eprime_bin`, supports absolute path)
@@ -283,10 +285,8 @@ For each kinematic setting, bin-count is computed as `len(edges)-1` (e.g. `kinB_
 Example dry-run and submit commands:
 
 ```bash
-env MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
 bash ./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json'
 
-env MC_SINGLE_ARM_REPO=/path/to/mc-single-arm \
 bash ./run_farm_template.sh -C framework_config.mc_single_arm_bin.example.json -g 'manifest_mc_single_arm_bin_shms_kinB.example.json' -s
 ```
 
@@ -296,9 +296,9 @@ Optional worker override:
 - `MC_SINGLE_ARM_USE_LOCAL_COPY` (default: `1`) copies the mc-single-arm repo to local job scratch before building/running to avoid network filesystem stale-handle build failures.
 - `MC_SINGLE_ARM_BUILD_ROOT` (default: `${SWIF_JOB_WORK_DIR}/mc_single_arm_build`) controls where the local working copy is created when local-copy mode is enabled.
 
-Use manifest `worker_env` entries to forward required environment variables into worker jobs (for example `MC_SINGLE_ARM_REPO`). Keep optional variables (like `MC_SINGLE_ARM_RUN_SCRIPT`) out of `worker_env` unless they are explicitly defined. `worker_env` values support shell-style `$VARNAME` expansion on the submit host. Unresolved variables raise an error at submit-time so jobs do not launch with ambiguous paths.
+Use framework-config `worker_env` for shared job settings that should apply to every submitted job, such as `MC_SINGLE_ARM_REPO`. Use manifest `worker_env` only for per-manifest overrides. `worker_env` values support shell-style `$VARNAME` expansion on the submit host. Unresolved variables raise an error at submit-time so jobs do not launch with ambiguous paths.
 
-Worker scripts require absolute paths on batch nodes. If `SWIF_JOB_WORK_DIR`/`SWIF_JOB_STAGE_DIR` are not set, staging falls back to `/scratch/$USER/slurm/$SLURM_JOB_ID`. If SWIF exposes a legacy `/scratch/slurm/...` path, the workers normalize it to `/scratch/$USER/slurm/...` before staging or local-build setup. The worker templates now reject relative file paths for staged inputs and create only the final job scratch directory under the existing `/scratch/$USER/slurm` parent.
+Worker scripts require absolute paths on batch nodes. If `SWIF_JOB_WORK_DIR`/`SWIF_JOB_STAGE_DIR` are not set, staging falls back to `/scratch/slurm/$SLURM_JOB_ID` on batch jobs and `$(pwd)` otherwise. The worker templates reject relative file paths for staged inputs and create only the final job scratch directory under the existing `/scratch/slurm` parent.
 
 
 For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.

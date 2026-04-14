@@ -27,7 +27,9 @@ from template_common import (
     build_worker_invocation,
     format_remote_arg,
     load_existing_job_names,
+    load_framework_worker_env,
     load_manifest_jobs,
+    merge_worker_env_layers,
     read_runs_file,
     render_outputs,
     render_worker_args,
@@ -67,6 +69,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest-dir", default=DEFAULT_MANIFEST_DIR, help="Directory containing manifests")
     parser.add_argument("--manifest-glob", default=None, help="Explicit manifest glob, e.g. '*simc*.json'")
     parser.add_argument("--worker-script", required=True, help="Batch-node worker script to run")
+    parser.add_argument("--framework-config", default=None, help="Optional framework config JSON for shared worker_env")
     parser.add_argument("--workflow-name", required=True, help="Target SWIF workflow name")
     parser.add_argument("--swif2-bin", default=DEFAULT_SWIF2, help="SWIF2 client executable")
     parser.add_argument("--account", default=DEFAULT_ACCOUNT, help="SWIF/Slurm account")
@@ -87,6 +90,7 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
     existing_job_names = load_existing_job_names(args.swif2_bin, args.workflow_name) if args.skip_existing else set()
     plans: List[RunPlan] = []
     selector_label = args.selector or "selection"
+    framework_worker_env = load_framework_worker_env(args.framework_config)
     for manifest_job in manifest_jobs:
         variant_runs = set()
         for runs_file in manifest_job.runs_files:
@@ -103,7 +107,7 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                 fallback=(manifest_job.variant_name, "{run}"),
             )
             worker_env = render_worker_env(
-                manifest_job.worker_env_raw,
+                merge_worker_env_layers(framework_worker_env, manifest_job.worker_env_raw),
                 selector=selector_label,
                 run=run,
                 variant=manifest_job.variant_name,
