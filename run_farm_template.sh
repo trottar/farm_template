@@ -15,6 +15,32 @@ DEFAULT_WORKFLOW_PREFIX="analysis"
 DEFAULT_UNIQUE_WORKER="${SCRIPT_DIR}/workers/worker_single_run_template.sh"
 DEFAULT_VARIANT_WORKER="${SCRIPT_DIR}/workers/worker_variant_run_template.sh"
 
+resolve_existing_path() {
+    python3 - <<'PY' "$1"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1]).expanduser().resolve()
+if not path.exists():
+    raise SystemExit(f"ERROR: path does not exist: {path}")
+print(path)
+PY
+}
+
+resolve_existing_dir() {
+    python3 - <<'PY' "$1"
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1]).expanduser().resolve()
+if not path.exists():
+    raise SystemExit(f"ERROR: directory does not exist: {path}")
+if not path.is_dir():
+    raise SystemExit(f"ERROR: expected directory path, got: {path}")
+print(path)
+PY
+}
+
 print_help() {
     echo "--------------------------------------------------------------"
     echo "./farm_templates/run_farm_template.sh [flags] [selector]"
@@ -102,11 +128,8 @@ if [[ "${variant_flag:-false}" = "true" ]]; then
     WORKFLOW_SUFFIX="_variant"
 fi
 
-if [[ -n "${framework_config:-}" && "${framework_config}" != /* ]]; then
-    framework_config="${PWD}/${framework_config}"
-fi
-
 if [[ -n "${framework_config:-}" ]]; then
+    framework_config="$(resolve_existing_path "${framework_config}")"
     CONFIG_EXPORTS="$(python3 - <<'PY' "${framework_config}"
 import json, sys
 from pathlib import Path
@@ -166,15 +189,13 @@ fi
 
 if [[ -z "${manifest_dir:-}" ]]; then
     manifest_dir="${DEFAULT_MANIFEST_DIR}"
-elif [[ "${manifest_dir}" != /* ]]; then
-    manifest_dir="${PWD}/${manifest_dir}"
 fi
+manifest_dir="$(resolve_existing_dir "${manifest_dir}")"
 
 if [[ -z "${worker_script:-}" ]]; then
     worker_script="${DEFAULT_WORKER}"
-elif [[ "${worker_script}" != /* ]]; then
-    worker_script="${PWD}/${worker_script}"
 fi
+worker_script="$(resolve_existing_path "${worker_script}")"
 
 if [[ -z "${manifest_glob:-}" ]]; then
     if [[ -n "${SELECTOR}" ]]; then

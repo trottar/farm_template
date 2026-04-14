@@ -22,6 +22,8 @@ DEFAULT_MANIFEST_DIR = str(Path(__file__).resolve().parents[1] / "examples")
 
 RUN_LINE_RE = re.compile(r"^\s*(\d+)\s*$")
 SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9_.-]+")
+UNRESOLVED_ENV_RE = re.compile(r"\$(\{[^}]+\}|[A-Za-z_][A-Za-z0-9_]*)")
+WINDOWS_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 
 
 @dataclass(frozen=True)
@@ -47,6 +49,55 @@ def run_command(cmd: Sequence[str], capture: bool = False) -> subprocess.Complet
 
 def safe_name(text: str) -> str:
     return SAFE_NAME_RE.sub("_", text).strip("_")
+
+
+def expand_path_tokens(value: str, *, context: str) -> str:
+    expanded = os.path.expanduser(os.path.expandvars(value))
+    if UNRESOLVED_ENV_RE.search(expanded):
+        raise ValueError(f"Unresolved environment variable in {context}: {value}")
+    return expanded
+
+
+def looks_like_path(value: str) -> bool:
+    if not value:
+        return False
+    if WINDOWS_DRIVE_RE.match(value):
+        return True
+    if value.startswith(("~", "/", "./", "../", ".\\", "..\\")):
+        return True
+    return "/" in value or "\\" in value
+
+
+def env_value_should_be_path(key: str, value: str) -> bool:
+    key_upper = key.upper()
+    if os.pathsep in value and key_upper in {"PATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH", "PYTHONPATH"}:
+        return False
+    return key_upper.endswith(("_DIR", "_FILE", "_PATH", "_ROOT", "_REPO", "_SCRIPT", "_HOME"))
+
+
+def resolve_explicit_path(value: str, *, base_dir: Path, context: str, must_exist: bool = False) -> Path:
+    expanded = expand_path_tokens(value, context=context)
+    path = Path(expanded)
+    if not path.is_absolute():
+        path = base_dir / path
+    path = path.resolve()
+    if must_exist and not path.exists():
+        raise FileNotFoundError(f"{context} not found: {path}")
+    return path
+
+
+def normalize_path_like_value(value: str, *, base_dir: Path, context: str, force_path: bool = False) -> str:
+    expanded = expand_path_tokens(value, context=context)
+    if force_path or looks_like_path(expanded):
+        return str(resolve_explicit_path(expanded, base_dir=base_dir, context=context))
+    return expanded
+
+
+def resolve_submit_path_arg(value: str, *, what: str, must_exist: bool = True, require_dir: bool = False) -> str:
+    path = resolve_explicit_path(value, base_dir=Path.cwd(), context=what, must_exist=must_exist)
+    if require_dir and not path.is_dir():
+        raise NotADirectoryError(f"{what} is not a directory: {path}")
+    return str(path)
 
 
 def format_tokens(template: str, *, selector: str, run: int, variant: str, manifest_name: str) -> str:
@@ -88,9 +139,7 @@ def normalize_runs_files(raw_value: object, manifest_path: Path) -> Tuple[Path, 
 
     paths: List[Path] = []
     for value in values:
-        path = Path(os.path.expandvars(value))
-        if not path.is_absolute():
-            path = (manifest_path.parent / path).resolve()
+        path = resolve_explicit_path(value, base_dir=manifest_path.parent, context=f"runs_file in {manifest_path.name}")
         paths.append(path)
     return tuple(paths)
 
@@ -167,15 +216,36 @@ def load_manifest_jobs(manifest_dir: Path, manifest_glob: str, partition_overrid
     return jobs
 
 
-def render_worker_args(raw_args: Sequence[str], *, selector: str, run: int, variant: str, manifest_name: str, fallback: Sequence[str]) -> Tuple[str, ...]:
+def render_worker_args(
+    raw_args: Sequence[str],
+    *,
+    selector: str,
+    run: int,
+    variant: str,
+    manifest_name: str,
+    manifest_path: Path,
+    fallback: Sequence[str],
+) -> Tuple[str, ...]:
     templates = list(raw_args) if raw_args else list(fallback)
     return tuple(
-        format_tokens(str(template), selector=selector, run=run, variant=variant, manifest_name=manifest_name)
-        for template in templates
+        normalize_path_like_value(
+            format_tokens(str(template), selector=selector, run=run, variant=variant, manifest_name=manifest_name),
+            base_dir=manifest_path.parent,
+            context=f"worker_args[{index}] in {manifest_path.name}",
+        )
+        for index, template in enumerate(templates, start=1)
     )
 
 
-def render_worker_env(raw_env: Sequence[Tuple[str, str]], *, selector: str, run: int, variant: str, manifest_name: str) -> Tuple[Tuple[str, str], ...]:
+def render_worker_env(
+    raw_env: Sequence[Tuple[str, str]],
+    *,
+    selector: str,
+    run: int,
+    variant: str,
+    manifest_name: str,
+    manifest_path: Path,
+) -> Tuple[Tuple[str, str], ...]:
     rendered: List[Tuple[str, str]] = []
     token_map = {
         "{selector}": selector,
@@ -188,24 +258,57 @@ def render_worker_env(raw_env: Sequence[Tuple[str, str]], *, selector: str, run:
         value = value_template
         for token, token_value in token_map.items():
             value = value.replace(token, token_value)
-        value = os.path.expandvars(value)
-        if "$" in value:
-            raise ValueError(
-                f"Unresolved environment variable in worker_env for variant={variant}, run={run}: {key}={value_template}"
-            )
+        value = normalize_path_like_value(
+            value,
+            base_dir=manifest_path.parent,
+            context=f"worker_env[{key}] for variant={variant}, run={run}",
+            force_path=env_value_should_be_path(key, value),
+        )
         if value:
             rendered.append((key, value))
     return tuple(rendered)
 
 
-def render_outputs(outputs_raw: Sequence[Dict[str, str]], *, selector: str, run: int, variant: str, manifest_name: str) -> Tuple[OutputSpec, ...]:
+def render_outputs(
+    outputs_raw: Sequence[Dict[str, str]],
+    *,
+    selector: str,
+    run: int,
+    variant: str,
+    manifest_name: str,
+    manifest_path: Path,
+) -> Tuple[OutputSpec, ...]:
     rendered: List[OutputSpec] = []
     for raw_output in outputs_raw:
         local_name = format_tokens(raw_output["local_template"], selector=selector, run=run, variant=variant, manifest_name=manifest_name)
+        if looks_like_path(local_name):
+            raise ValueError(
+                f"local_template must resolve to a basename, not a path: {local_name} ({manifest_path.name})"
+            )
         if "remote_file_template" in raw_output:
-            remote_path = Path(format_tokens(raw_output["remote_file_template"], selector=selector, run=run, variant=variant, manifest_name=manifest_name))
+            remote_path = resolve_explicit_path(
+                format_tokens(
+                    raw_output["remote_file_template"],
+                    selector=selector,
+                    run=run,
+                    variant=variant,
+                    manifest_name=manifest_name,
+                ),
+                base_dir=manifest_path.parent,
+                context=f"remote_file_template in {manifest_path.name}",
+            )
         else:
-            remote_dir = Path(format_tokens(raw_output["remote_dir"], selector=selector, run=run, variant=variant, manifest_name=manifest_name))
+            remote_dir = resolve_explicit_path(
+                format_tokens(
+                    raw_output["remote_dir"],
+                    selector=selector,
+                    run=run,
+                    variant=variant,
+                    manifest_name=manifest_name,
+                ),
+                base_dir=manifest_path.parent,
+                context=f"remote_dir in {manifest_path.name}",
+            )
             remote_path = remote_dir / local_name
         rendered.append(OutputSpec(local_name=local_name, remote_file=remote_path))
     return tuple(rendered)
@@ -247,6 +350,7 @@ def summarize_cmd(cmd: Sequence[str]) -> str:
 
 
 def build_worker_invocation(worker_script: str, worker_args: Sequence[str], worker_env: Sequence[Tuple[str, str]]) -> List[str]:
+    worker_script = resolve_submit_path_arg(worker_script, what="worker_script", must_exist=True)
     exported = [f"{key}={value}" for key, value in worker_env if key and value]
     if not exported:
         return [worker_script, *worker_args]

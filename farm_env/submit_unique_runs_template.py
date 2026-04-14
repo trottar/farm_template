@@ -32,6 +32,7 @@ from template_common import (
     render_outputs,
     render_worker_args,
     render_worker_env,
+    resolve_submit_path_arg,
     run_command,
     safe_name,
     summarize_cmd,
@@ -99,6 +100,7 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                 run=run,
                 variant=manifest_job.variant_name,
                 manifest_name=manifest_job.manifest_path.stem,
+                manifest_path=manifest_job.manifest_path,
                 fallback=("{run}",),
             )
             outputs = render_outputs(
@@ -107,6 +109,7 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                 run=run,
                 variant=manifest_job.variant_name,
                 manifest_name=manifest_job.manifest_path.stem,
+                manifest_path=manifest_job.manifest_path,
             )
             existing = grouped.get(run)
             if existing is None:
@@ -119,6 +122,7 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                         run=run,
                         variant=manifest_job.variant_name,
                         manifest_name=manifest_job.manifest_path.stem,
+                        manifest_path=manifest_job.manifest_path,
                     ),
                     "partition": manifest_job.partition,
                     "variants": [manifest_job.variant_name],
@@ -135,6 +139,7 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                 run=run,
                 variant=manifest_job.variant_name,
                 manifest_name=manifest_job.manifest_path.stem,
+                manifest_path=manifest_job.manifest_path,
             )
             if tuple(existing["worker_env"]) != worker_env:
                 raise ValueError(f"Conflicting worker_env for run {run} across matching manifests")
@@ -211,7 +216,8 @@ def build_add_job_command(args: argparse.Namespace, plan: RunPlan) -> List[str]:
 
 def main() -> int:
     args = parse_args()
-    manifest_dir = Path(args.manifest_dir).expanduser().resolve()
+    args.worker_script = resolve_submit_path_arg(args.worker_script, what="worker_script", must_exist=True)
+    manifest_dir = Path(resolve_submit_path_arg(args.manifest_dir, what="manifest_dir", must_exist=True, require_dir=True))
     manifest_glob = resolve_manifest_glob(args.selector, args.manifest_glob)
     manifest_jobs = load_manifest_jobs(manifest_dir, manifest_glob, args.partition)
     plans = build_run_plans(args, manifest_jobs)

@@ -38,6 +38,15 @@ ensure_job_work_dir() {
     mkdir "${path}"
 }
 
+require_absolute_path() {
+    local path="$1"
+    local label="$2"
+    if [[ "${path}" != /* ]]; then
+        echo "ERROR: ${label} must be an absolute path: ${path}" >&2
+        exit 3
+    fi
+}
+
 KIN_NAME="${1:-}"
 BIN_INDEX="${2:-}"
 JOB_WORK_DIR="$(normalize_job_path "${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-/scratch/${USER}/slurm/${SLURM_JOB_ID:-$$}}}")"
@@ -76,10 +85,8 @@ if [[ "${MC_SINGLE_ARM_REPO}" != /* ]]; then
     echo "ERROR: MC_SINGLE_ARM_REPO must be an absolute path: ${MC_SINGLE_ARM_REPO}" >&2
     exit 3
 fi
-if [[ "${JOB_WORK_DIR}" != /* ]]; then
-    echo "ERROR: JOB_WORK_DIR resolved to non-absolute path: ${JOB_WORK_DIR}" >&2
-    exit 3
-fi
+require_absolute_path "${JOB_WORK_DIR}" "JOB_WORK_DIR"
+require_absolute_path "${MC_SINGLE_ARM_BUILD_ROOT}" "MC_SINGLE_ARM_BUILD_ROOT"
 ensure_job_work_dir "${JOB_WORK_DIR}"
 if [[ ! -w "${JOB_WORK_DIR}" ]]; then
     echo "ERROR: JOB_WORK_DIR is not writable on the batch node: ${JOB_WORK_DIR}" >&2
@@ -111,6 +118,8 @@ if [[ "${RUN_SCRIPT}" = /* ]]; then
 else
     SCRIPT_PATH="${WORK_REPO}/${RUN_SCRIPT}"
 fi
+require_absolute_path "${WORK_REPO}" "WORK_REPO"
+require_absolute_path "${SCRIPT_PATH}" "SCRIPT_PATH"
 
 if [[ ! -f "${SCRIPT_PATH}" ]]; then
     echo "ERROR: run script file not found: ${SCRIPT_PATH}" >&2
@@ -124,6 +133,7 @@ fi
 
 run_tag="${KIN_NAME}_bin$(printf '%03d' "${BIN_INDEX}")"
 expected_output="${WORK_REPO}/outfiles/${run_tag}.root"
+require_absolute_path "${expected_output}" "expected_output"
 
 # Prevent stale-file false positives from previous retries/runs.
 rm -f "${expected_output}"

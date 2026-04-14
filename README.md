@@ -75,6 +75,13 @@ Supported output fields:
 - `remote_file_template`
   Full remote filename template if you need a custom output name.
 
+Path rules:
+
+- `runs_file`, `remote_dir`, and `remote_file_template` are resolved to full absolute paths before submission.
+- `local_template` must resolve to a basename only, not a path.
+- `worker_args` values that look like paths are resolved to full absolute paths relative to the manifest file.
+- `worker_env` values that are path-like, or use path-oriented keys such as `*_DIR`, `*_FILE`, `*_PATH`, `*_ROOT`, `*_REPO`, or `*_SCRIPT`, are resolved to full absolute paths before submission.
+
 Supported placeholders:
 
 - `{run}`
@@ -190,6 +197,11 @@ Supported top-level fields:
 
 The config is optional. Command-line flags still override it.
 
+Framework path rules:
+
+- `framework_config`, `manifest_dir`, and `worker_script` are canonicalized to full existing paths by `run_farm_template.sh`.
+- Relative paths inside framework config JSON are resolved relative to that JSON file.
+
 Included examples:
 
 - [framework_config.example.json](c:/Users/trott/Documents/Programs/lt_analysis/farm_templates/framework_config.example.json)
@@ -286,7 +298,7 @@ Optional worker override:
 
 Use manifest `worker_env` entries to forward required environment variables into worker jobs (for example `MC_SINGLE_ARM_REPO`). Keep optional variables (like `MC_SINGLE_ARM_RUN_SCRIPT`) out of `worker_env` unless they are explicitly defined. `worker_env` values support shell-style `$VARNAME` expansion on the submit host. Unresolved variables raise an error at submit-time so jobs do not launch with ambiguous paths.
 
-Worker scripts require absolute paths on batch nodes. If `SWIF_JOB_WORK_DIR`/`SWIF_JOB_STAGE_DIR` are not set, staging falls back to `/scratch/$USER/slurm/$SLURM_JOB_ID`. If SWIF exposes a legacy `/scratch/slurm/...` path, the workers normalize it to `/scratch/$USER/slurm/...` before staging or local-build setup.
+Worker scripts require absolute paths on batch nodes. If `SWIF_JOB_WORK_DIR`/`SWIF_JOB_STAGE_DIR` are not set, staging falls back to `/scratch/$USER/slurm/$SLURM_JOB_ID`. If SWIF exposes a legacy `/scratch/slurm/...` path, the workers normalize it to `/scratch/$USER/slurm/...` before staging or local-build setup. The worker templates now reject relative file paths for staged inputs and create only the final job scratch directory under the existing `/scratch/$USER/slurm` parent.
 
 
 For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.

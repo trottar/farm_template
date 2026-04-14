@@ -38,9 +38,19 @@ ensure_job_work_dir() {
     mkdir "${path}"
 }
 
+require_absolute_path() {
+    local path="$1"
+    local label="$2"
+    if [[ "${path}" != /* ]]; then
+        echo "ERROR: ${label} must be an absolute path: ${path}" >&2
+        exit 1
+    fi
+}
+
 VARIANT_NAME="${1:-}"
 RUN_ID="${2:-}"
 JOB_WORK_DIR="$(normalize_job_path "${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-$(pwd)}}")"
+require_absolute_path "${JOB_WORK_DIR}" "JOB_WORK_DIR"
 ensure_job_work_dir "${JOB_WORK_DIR}"
 
 if [[ -z "${VARIANT_NAME}" || -z "${RUN_ID}" ]]; then
@@ -82,10 +92,12 @@ if [[ -z "${PRIMARY_OUTPUT_SOURCE}" ]]; then
     exit 1
 fi
 
+require_absolute_path "${PRIMARY_OUTPUT_SOURCE}" "PRIMARY_OUTPUT_SOURCE"
 require_file "${PRIMARY_OUTPUT_SOURCE}"
 stage_swif_copy "${PRIMARY_OUTPUT_SOURCE}"
 
 if [[ -n "${SECONDARY_OUTPUT_SOURCE}" ]]; then
+    require_absolute_path "${SECONDARY_OUTPUT_SOURCE}" "SECONDARY_OUTPUT_SOURCE"
     require_file "${SECONDARY_OUTPUT_SOURCE}"
     stage_swif_copy "${SECONDARY_OUTPUT_SOURCE}"
 fi
