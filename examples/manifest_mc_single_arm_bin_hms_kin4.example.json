@@ -1,0 +1,21 @@
+{
+  "defaults": {
+    "partition": "production"
+  },
+  "jobs": [
+    {
+      "variant_name": "kin4_hms",
+      "runs_file": "./mc_single_arm_kin4_hms_bins_example.txt",
+      "worker_args": [
+        "kin4_hms",
+        "{run}"
+      ],
+      "outputs": [
+        {
+          "local_template": "kin4_hms_bin{run}.root",
+          "remote_dir": "/volatile/hallc/c-polhe3/$USER/OUTPUT/mc_single_arm/kin4_hms"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "defaults": {
+    "partition": "production"
+  },
+  "jobs": [
+    {
+      "variant_name": "kinC_shms",
+      "runs_file": "./mc_single_arm_kinC_shms_bins_example.txt",
+      "worker_args": [
+        "kinC_shms",
+        "{run}"
+      ],
+      "outputs": [
+        {
+          "local_template": "kinC_shms_bin{run}.root",
+          "remote_dir": "/volatile/hallc/c-polhe3/$USER/OUTPUT/mc_single_arm/kinC_shms"
+        }
+      ]
+    }
+  ]
+}

@@ -266,8 +266,20 @@ For easier adaptation across kinematics, use these generic files:
   framework config that targets `manifest_mc_single_arm_bin*.json`.
 - `examples/manifest_mc_single_arm_bin_shms_kinB.example.json`
   concrete SHMS kinematic example (`kinB_shms`).
+- `examples/manifest_mc_single_arm_bin_shms_kinC.example.json`
+  concrete SHMS kinematic example (`kinC_shms`).
+- `examples/manifest_mc_single_arm_bin_hms_kin3.example.json`
+  concrete HMS kinematic example (`kin3_hms`).
+- `examples/manifest_mc_single_arm_bin_hms_kin4.example.json`
+  concrete HMS kinematic example (`kin4_hms`).
 - `examples/mc_single_arm_shms_kinB_bins_example.txt`
-  bin index list for the SHMS example.
+  bin index list for the `kinB_shms` example.
+- `examples/mc_single_arm_kinC_shms_bins_example.txt`
+  bin index list for the `kinC_shms` example.
+- `examples/mc_single_arm_kin3_bins_example.txt`
+  bin index list for the `kin3_hms` example.
+- `examples/mc_single_arm_kin4_hms_bins_example.txt`
+  bin index list for the `kin4_hms` example.
 - `farm_env/make_bin_index_list.py`
   helper to generate bin index lists without hand-editing text files.
 
