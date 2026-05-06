@@ -310,7 +310,7 @@ Optional worker override:
 
 Use framework-config `worker_env` for shared job settings that should apply to every submitted job, such as `MC_SINGLE_ARM_REPO`. Use manifest `worker_env` only for per-manifest overrides. `worker_env` values support shell-style `$VARNAME` expansion on the submit host. Unresolved variables raise an error at submit-time so jobs do not launch with ambiguous paths.
 
-Worker scripts require absolute paths on batch nodes. On Slurm jobs, worker scratch always resolves under `/scratch/$USER/slurm/$SLURM_JOB_ID`. If SWIF provides `/scratch/slurm/...`, the worker normalizes it to `/scratch/$USER/slurm/...` before creating temp, cache, build, or staged-output paths. Outside Slurm, the fallback remains `$(pwd)`. The worker templates reject relative file paths for staged inputs and create only the final job scratch directory under the existing `/scratch/$USER/slurm` parent.
+Worker scripts require absolute paths on batch nodes. On Slurm jobs, worker scratch always resolves under `/scratch/$USER/slurm/$SLURM_JOB_ID`. If SWIF provides `/scratch/slurm/...`, the worker normalizes it to `/scratch/$USER/slurm/...` before creating temp, cache, build, or staged-output paths. Outside Slurm, the fallback remains `$(pwd)`. The worker templates reject relative file paths for staged inputs, require `/scratch/$USER` to already exist, and then create the `slurm/$SLURM_JOB_ID` subtree beneath that user scratch root automatically.
 
 
 For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.
