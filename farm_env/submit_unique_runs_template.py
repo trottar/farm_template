@@ -214,7 +214,10 @@ def build_add_job_command(args: argparse.Namespace, plan: RunPlan) -> List[str]:
     ]
     for output in plan.outputs_missing:
         cmd.extend(["-output", output.local_name, format_remote_arg(output.remote_file)])
-    cmd.extend(build_worker_invocation(args.worker_script, plan.worker_args, plan.worker_env))
+    worker_env = list(plan.worker_env)
+    if len(plan.outputs_all) == 1:
+        worker_env.append(("SWIF_PRIMARY_OUTPUT_BASENAME", plan.outputs_all[0].local_name))
+    cmd.extend(build_worker_invocation(args.worker_script, plan.worker_args, tuple(worker_env)))
     return cmd
 
 

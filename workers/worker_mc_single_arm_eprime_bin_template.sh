@@ -211,7 +211,13 @@ if [[ ! -s "${actual_output}" ]]; then
     exit 4
 fi
 
-staged_name="${KIN_NAME}_bin${BIN_INDEX}.root"
+if [[ -n "${SWIF_PRIMARY_OUTPUT_BASENAME:-}" ]]; then
+    staged_name="${SWIF_PRIMARY_OUTPUT_BASENAME}"
+elif [[ "${actual_output}" == *3HeFit.root ]]; then
+    staged_name="${KIN_NAME}_bin${BIN_INDEX}3HeFit.root"
+else
+    staged_name="${KIN_NAME}_bin${BIN_INDEX}.root"
+fi
 staged_file="${JOB_WORK_DIR}/${staged_name}"
 cp -f "${actual_output}" "${staged_file}"
 
