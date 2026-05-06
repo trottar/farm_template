@@ -41,6 +41,33 @@ prepare_local_output_dirs() {
     done
 }
 
+resolve_root_output() {
+    local repo_root="$1"
+    local tag="$2"
+    local exact_output="${repo_root}/outfiles/${tag}.root"
+    local sf_output="${repo_root}/outfiles/${tag}3HeFit.root"
+    local candidates=()
+
+    if [[ -f "${exact_output}" ]]; then
+        printf '%s\n' "${exact_output}"
+        return 0
+    fi
+    if [[ -f "${sf_output}" ]]; then
+        printf '%s\n' "${sf_output}"
+        return 0
+    fi
+
+    shopt -s nullglob
+    candidates=( "${repo_root}/outfiles/${tag}"*.root )
+    shopt -u nullglob
+
+    if [[ ${#candidates[@]} -eq 1 ]]; then
+        printf '%s\n' "${candidates[0]}"
+        return 0
+    fi
+    return 1
+}
+
 KIN_NAME="${1:-}"
 BIN_INDEX="${2:-}"
 JOB_WORK_DIR="${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-${SLURM_JOB_ID:+/scratch/slurm/${SLURM_JOB_ID}}}}"
@@ -133,8 +160,11 @@ fi
 run_tag="${KIN_NAME}_bin$(printf "%0${BIN_PAD_WIDTH}d" "${BIN_INDEX}")"
 expected_output="${WORK_REPO}/outfiles/${run_tag}.root"
 require_absolute_path "${expected_output}" "expected_output"
+expected_output_sf="${WORK_REPO}/outfiles/${run_tag}3HeFit.root"
+require_absolute_path "${expected_output_sf}" "expected_output_sf"
 
 rm -f "${expected_output}"
+rm -f "${expected_output_sf}"
 
 pushd "${WORK_REPO}" >/dev/null
 if [[ -x "${SCRIPT_PATH}" ]]; then
@@ -158,7 +188,9 @@ else
 fi
 popd >/dev/null
 
-if [[ ! -f "${expected_output}" ]]; then
+actual_output="$(resolve_root_output "${WORK_REPO}" "${run_tag}" || true)"
+
+if [[ -z "${actual_output}" ]]; then
     echo "ERROR: expected output file not found: ${expected_output}" >&2
     if [[ -d "${WORK_REPO}/outfiles" ]]; then
         echo "Available outfiles entries:" >&2
@@ -174,13 +206,14 @@ if [[ ! -f "${expected_output}" ]]; then
     fi
     exit 4
 fi
-if [[ ! -s "${expected_output}" ]]; then
-    echo "ERROR: expected output file is empty (possible Fortran/runtime failure): ${expected_output}" >&2
+if [[ ! -s "${actual_output}" ]]; then
+    echo "ERROR: expected output file is empty (possible Fortran/runtime failure): ${actual_output}" >&2
     exit 4
 fi
 
 staged_name="${KIN_NAME}_bin${BIN_INDEX}.root"
 staged_file="${JOB_WORK_DIR}/${staged_name}"
-cp -f "${expected_output}" "${staged_file}"
+cp -f "${actual_output}" "${staged_file}"
 
+echo "Resolved ROOT output at ${actual_output}"
 echo "Staged SWIF output copy at ${staged_file}"
