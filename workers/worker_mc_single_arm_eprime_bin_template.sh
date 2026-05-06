@@ -30,6 +30,17 @@ require_absolute_path() {
     fi
 }
 
+prepare_local_output_dirs() {
+    local repo_root="$1"
+    local entry
+    for entry in runout worksim outfiles; do
+        if [[ -L "${repo_root}/${entry}" || ! -d "${repo_root}/${entry}" ]]; then
+            rm -rf "${repo_root:?}/${entry}"
+            mkdir -p "${repo_root}/${entry}"
+        fi
+    done
+}
+
 KIN_NAME="${1:-}"
 BIN_INDEX="${2:-}"
 JOB_WORK_DIR="${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-${SLURM_JOB_ID:+/scratch/slurm/${SLURM_JOB_ID}}}}"
@@ -97,6 +108,7 @@ if [[ "${MC_SINGLE_ARM_USE_LOCAL_COPY}" = "1" ]]; then
         mkdir -p "${WORK_REPO}"
         cp -a "${MC_SINGLE_ARM_REPO}/." "${WORK_REPO}/"
     fi
+    prepare_local_output_dirs "${WORK_REPO}"
 fi
 
 if [[ "${RUN_SCRIPT}" = /* ]]; then
@@ -148,6 +160,18 @@ popd >/dev/null
 
 if [[ ! -f "${expected_output}" ]]; then
     echo "ERROR: expected output file not found: ${expected_output}" >&2
+    if [[ -d "${WORK_REPO}/outfiles" ]]; then
+        echo "Available outfiles entries:" >&2
+        find "${WORK_REPO}/outfiles" -maxdepth 1 -type f -name "${KIN_NAME}_bin*" -printf '  %f\n' >&2 || true
+    fi
+    if [[ -d "${WORK_REPO}/worksim" ]]; then
+        echo "Available worksim entries:" >&2
+        find "${WORK_REPO}/worksim" -maxdepth 1 -type f -name "${KIN_NAME}_bin*" -printf '  %f\n' >&2 || true
+    fi
+    if [[ -f "${WORK_REPO}/runout/${run_tag}.out" ]]; then
+        echo "Tail of run log ${WORK_REPO}/runout/${run_tag}.out:" >&2
+        tail -n 40 "${WORK_REPO}/runout/${run_tag}.out" >&2 || true
+    fi
     exit 4
 fi
 if [[ ! -s "${expected_output}" ]]; then
