@@ -306,11 +306,11 @@ Optional worker override:
 
 - `MC_SINGLE_ARM_BIN_PAD_WIDTH` (default: `3`) controls the expected input-file bin padding width.
 - `MC_SINGLE_ARM_USE_LOCAL_COPY` (default: `1`) copies the mc-single-arm repo to local job scratch before building/running to avoid network filesystem stale-handle build failures.
-- `MC_SINGLE_ARM_BUILD_ROOT` (default: `${JOB_WORK_DIR}/mc_single_arm_build`) controls where the local working copy is created when local-copy mode is enabled.
+- `MC_SINGLE_ARM_BUILD_ROOT` (default: `${SWIF_JOB_WORK_DIR}/mc_single_arm_build`) controls where the local working copy is created when local-copy mode is enabled.
 
 Use framework-config `worker_env` for shared job settings that should apply to every submitted job, such as `MC_SINGLE_ARM_REPO`. Use manifest `worker_env` only for per-manifest overrides. `worker_env` values support shell-style `$VARNAME` expansion on the submit host. Unresolved variables raise an error at submit-time so jobs do not launch with ambiguous paths.
 
-Worker scripts require absolute paths on batch nodes. On Slurm jobs, worker scratch always resolves under `/scratch/$USER/slurm/$SLURM_JOB_ID`. If SWIF provides `/scratch/slurm/...`, the worker normalizes it to `/scratch/$USER/slurm/...` before creating temp, cache, build, or staged-output paths. Outside Slurm, the fallback remains `$(pwd)`. The worker templates reject relative file paths for staged inputs, require `/scratch/$USER` to already exist, and then create the `slurm/$SLURM_JOB_ID` subtree beneath that user scratch root automatically.
+Worker scripts require absolute paths on batch nodes. If `SWIF_JOB_WORK_DIR`/`SWIF_JOB_STAGE_DIR` are not set, staging falls back to `/scratch/slurm/$SLURM_JOB_ID` on batch jobs and `$(pwd)` otherwise. The worker templates reject relative file paths for staged inputs and create only the final job scratch directory under the existing `/scratch/slurm` parent.
 
 
 For csh/tcsh shells on ifarm, prefer `env VAR=value command` syntax instead of `VAR=value command` assignments.
