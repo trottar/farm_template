@@ -30,8 +30,29 @@ require_absolute_path() {
     fi
 }
 
+resolve_job_user() {
+    if [[ -n "${USER:-}" ]]; then
+        printf '%s\n' "${USER}"
+        return
+    fi
+    id -un
+}
+
+normalize_job_work_dir() {
+    local path="$1"
+    local job_user="$2"
+
+    if [[ "${path}" == /scratch/slurm/* ]]; then
+        printf '/scratch/%s/slurm/%s\n' "${job_user}" "${path#/scratch/slurm/}"
+        return
+    fi
+    printf '%s\n' "${path}"
+}
+
 RUN_ID="${1:-}"
-JOB_WORK_DIR="${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-${SLURM_JOB_ID:+/scratch/slurm/${SLURM_JOB_ID}}}}"
+JOB_USER="$(resolve_job_user)"
+JOB_WORK_DIR_RAW="${SWIF_JOB_WORK_DIR:-${SWIF_JOB_STAGE_DIR:-${SLURM_JOB_ID:+/scratch/${JOB_USER}/slurm/${SLURM_JOB_ID}}}}"
+JOB_WORK_DIR="$(normalize_job_work_dir "${JOB_WORK_DIR_RAW}" "${JOB_USER}")"
 if [[ -z "${JOB_WORK_DIR}" ]]; then
     JOB_WORK_DIR="$(pwd)"
 fi
