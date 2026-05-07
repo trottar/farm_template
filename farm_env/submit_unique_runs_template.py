@@ -23,6 +23,7 @@ from template_common import (
     DEFAULT_TIME,
     ManifestJob,
     OutputSpec,
+    derive_job_name,
     create_workflow_if_needed,
     build_worker_invocation,
     format_remote_arg,
@@ -154,8 +155,17 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
     plans: List[RunPlan] = []
     for run in sorted(grouped):
         merged = grouped[run]
-        job_name = safe_name(f"{selector_label}_run{run}")
         outputs_all = tuple(merged["outputs"])  # type: ignore[arg-type]
+        worker_args = tuple(merged["worker_args"])  # type: ignore[arg-type]
+        worker_env = tuple(merged["worker_env"])  # type: ignore[arg-type]
+        variants = tuple(sorted(set(merged["variants"])))  # type: ignore[arg-type]
+        job_name = derive_job_name(
+            f"{selector_label}_run{run}",
+            worker_args=worker_args,
+            worker_env=worker_env,
+            outputs=outputs_all,
+            extra_identity=variants,
+        )
         outputs_missing = tuple(output for output in outputs_all if not output.remote_file.exists())
 
         if not outputs_missing:
@@ -172,12 +182,12 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
             RunPlan(
                 run=run,
                 job_name=job_name,
-                worker_args=tuple(merged["worker_args"]),  # type: ignore[arg-type]
+                worker_args=worker_args,
                 outputs_all=outputs_all,
                 outputs_missing=outputs_missing,
                 partition=str(merged["partition"]),
-                worker_env=tuple(merged["worker_env"]),  # type: ignore[arg-type]
-                variants=tuple(sorted(set(merged["variants"]))),  # type: ignore[arg-type]
+                worker_env=worker_env,
+                variants=variants,
                 status=status,
                 note=note,
             )

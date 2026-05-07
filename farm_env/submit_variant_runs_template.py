@@ -23,6 +23,7 @@ from template_common import (
     DEFAULT_TIME,
     ManifestJob,
     OutputSpec,
+    derive_job_name,
     create_workflow_if_needed,
     build_worker_invocation,
     format_remote_arg,
@@ -123,7 +124,13 @@ def build_run_plans(args: argparse.Namespace, manifest_jobs: Sequence[ManifestJo
                 manifest_path=manifest_job.manifest_path,
             )
             outputs_missing = tuple(output for output in outputs_all if not output.remote_file.exists())
-            job_name = safe_name(f"{selector_label}_{manifest_job.variant_name}_run{run}")
+            job_name = derive_job_name(
+                f"{selector_label}_{manifest_job.variant_name}_run{run}",
+                worker_args=worker_args,
+                worker_env=worker_env,
+                outputs=outputs_all,
+                extra_identity=(manifest_job.variant_name, manifest_job.manifest_path.stem),
+            )
 
             if not outputs_missing:
                 status = "SKIP"

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -49,6 +50,32 @@ def run_command(cmd: Sequence[str], capture: bool = False) -> subprocess.Complet
 
 def safe_name(text: str) -> str:
     return SAFE_NAME_RE.sub("_", text).strip("_")
+
+
+def derive_job_name(
+    base_name: str,
+    *,
+    worker_args: Sequence[str],
+    worker_env: Sequence[Tuple[str, str]],
+    outputs: Sequence[OutputSpec],
+    extra_identity: Sequence[str] = (),
+) -> str:
+    payload = {
+        "worker_args": list(worker_args),
+        "worker_env": list(worker_env),
+        "outputs": [
+            {
+                "local_name": output.local_name,
+                "remote_file": str(output.remote_file),
+            }
+            for output in outputs
+        ],
+        "extra_identity": list(extra_identity),
+    }
+    digest = hashlib.sha1(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()[:10]
+    return safe_name(f"{base_name}_{digest}")
 
 
 def expand_path_tokens(value: str, *, context: str) -> str:
